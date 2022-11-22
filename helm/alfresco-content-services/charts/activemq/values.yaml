@@ -58,8 +58,7 @@ livenessProbe:
   failureThreshold: 1
 persistence:
   enabled: true
-  #existingClaim: "alfresco-volume-claim"
-  VolumeSizeRequest: 10Gi
+  existingClaim: null
   activemq:
     data:
        mountPath: "/opt/activemq/data"
