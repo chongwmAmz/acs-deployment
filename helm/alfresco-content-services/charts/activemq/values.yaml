@@ -57,9 +57,15 @@ livenessProbe:
   timeoutSeconds: 10
   failureThreshold: 1
 persistence:
-  existingClaim: "alfresco-volume-claim"
-  mountPath: "/opt/activemq/data"
-  subPath: "alfresco-infrastructure/activemq-data"
+  enabled: true
+  #existingClaim: "alfresco-volume-claim"
+  VolumeSizeRequest: 10Gi
+  activemq:
+    data:
+       mountPath: "/opt/activemq/data"
+       subPath: "alfresco-infrastructure/activemq-data"
+  EbsPvConfiguration:
+    fsType: ext4
   #chown doesn't work with dynamic provisioning so far
   #issue on github: https://github.com/kubernetes-sigs/aws-efs-csi-driver/issues/300
   chownWithDynamicProvisioning: false
