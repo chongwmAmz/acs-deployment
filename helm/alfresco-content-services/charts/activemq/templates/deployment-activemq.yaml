@@ -64,9 +64,11 @@ spec:
         resources:
 {{ toYaml .Values.resources | indent 12 }}
         volumeMounts:
+        {{- if .Values.persistence.enabled }}
         - name: data
           mountPath: {{ .Values.persistence.mountPath }}
           subPath: {{ .Values.persistence.subPath }}
+        {{- end }}
       {{- if .Values.persistence.chownWithDynamicProvisioning }}
       initContainers:
         - name: init-fs
@@ -82,7 +84,9 @@ spec:
               subPath: {{ .Values.persistence.subPath }}
       {{- end }}
       volumes:
+          {{- if and .Values.persistence.enabled }}
       - name: data
         persistentVolumeClaim:
-          claimName: {{ .Values.persistence.existingClaim }}
+          claimName: {{ .Values.persistence.existingClaim  }}
+          {{- end }}
 {{- end }}

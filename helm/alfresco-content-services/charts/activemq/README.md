@@ -37,7 +37,7 @@ Please refer to the [documentation](https://github.com/Alfresco/acs-deployment/b
 | livenessProbe.timeoutSeconds | int | `10` |  |
 | nodeSelector | object | `{}` |  |
 | persistence.chownWithDynamicProvisioning | bool | `false` |  |
-| persistence.existingClaim | string | `"alfresco-volume-claim"` |  |
+| persistence.existingClaim | string | `nil` |  |
 | persistence.mountPath | string | `"/opt/activemq/data"` |  |
 | persistence.subPath | string | `"alfresco-infrastructure/activemq-data"` |  |
 | readinessProbe | object | `{"failureThreshold":6,"initialDelaySeconds":60,"periodSeconds":20,"timeoutSeconds":10}` | The ActiveMQ readiness probe is used to check startup only as a failure of the liveness probe later will result in the pod being restarted. |
