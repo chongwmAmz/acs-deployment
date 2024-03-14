@@ -253,10 +253,12 @@ alfresco-repository:
       securecomms: https
   persistence:
     enabled: false
-  environement:
-    CATALIAN_OPTS: >-
+  environment:
+    CATALINA_OPTS: >-
       -Ds3.bucketName=YOUR-BUCKET-NAME
       -Ds3.bucketLocation=YOUS_AWS_REGION
+    JAVA_OPTS: >-
+      -Dencryption.ssl.truststore.location=/etc/java/java-17-openjdk/java-17-openjdk-17.0.7.0.7-3.el8.x86_64/lib/security/cacerts
 alfresco-transform-service:
   filestore:
     persistence:
