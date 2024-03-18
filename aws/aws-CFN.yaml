@@ -1,0 +1,337 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS serverless infrastructure services for Alfresco Content Services 23 with Search Enterprise 4.0.
+Outputs:
+  DatabaseEndPoint:
+    Description: Database Server Instance ID
+    Value: 
+      'Fn::GetAtt':
+        - RDSDBCluster
+        - Endpoint.Address
+
+  FailOverAmazonMQBrokerEndPoint:
+    Description: AmazonMQ OpenWire endpoint
+    Value: !Join 
+      - ''
+      - - ''
+        - 'failover:('
+        - !Select [0, !GetAtt AmazonMQBroker.OpenWireEndpoints]
+        - ','
+        - !Select [1, !GetAtt AmazonMQBroker.OpenWireEndpoints]
+        - ')'
+
+  OpenSearchDomainEndpoint:
+    Description: OpenSearch domain endpoint
+    Value:
+      'Fn::GetAtt':
+        - OpenSearchServiceDomain
+        - DomainEndpoint
+  InternalAllAccessSecurityGroupId: 
+    Description: ID of the internal security group with access to all internal ports
+    Value: !Ref InternalAllAccessSecurityGroup
+
+  S3BucketName:
+    Value: !Ref ContentStoreS3Bucket
+  S3AccessRole:
+    Value: !Ref ContentStoreS3AccessRole     
+Parameters:
+  VPC:
+    Type: AWS::EC2::VPC::Id
+    Default: "vpc-02b7a1f660c81acc6"
+  DBName:
+    Type: String
+    Default: alfresco
+  DBMasterUsername:
+    Type: String
+    Default: alfresco
+  DBMasterUserPassword:
+    Type: String
+    Default: alfresco
+    NoEcho: true
+  DBClusterIdentifier:
+    Type: String
+    Default: alfrescodbv2-cluster
+    AllowedPattern: ^[a-z-][a-z0-9-]*$
+    Description:  1 to 63 lowercase letters, numbers, or hyphens. First character must be a letter. Can't end with a hyphen or contain two consecutive hyphens.
+  DBEngineVersion:
+    Type: String
+    Default: 15.4
+    AllowedValues:
+      - 14.7
+      - 14.8
+      - 14.9
+      - 15.2
+      - 15.3
+      - 15.4      
+  DBMinCapacity:
+    Type: String
+    Default: "0.5"
+  DBMaxCapacity:
+    Type: String
+    Default: "16.0"
+  PrivateSubnets:
+    Type: List<AWS::EC2::Subnet::Id>
+    Default: "subnet-040f8d02e4a96d851,subnet-078b689b62e31a1b6"
+  InternalSecurityGroups:
+     Type: List<AWS::EC2::SecurityGroup::Id>
+     #https://tinyurl.com/4spbj9na
+     Default: "sg-05d019f64ff5fd2b3,sg-0114c771129c332ac,sg-0fdb58dfb8dd18296"
+  AmazonMQBrokerName:
+    Description: Enter a name for the MQ broker to be created
+    Type: String
+    Default: ACS-MQBroker 
+  AmazonMQBrokerUserName:
+    Description: Enter a username for the MQ broker to be created
+    Type: String
+    Default: "alfresco"
+  AmazonMQBrokerPassword:
+    Description: Enter a password to administer the MQ broker to be created. Minimum 12 characters, at least 4 unique characters. Can't contain commas (,), colons (:), equals signs (=), spaces or non-printable ASCII characters.
+    Type: String
+    Default: beeisnotdctm
+    NoEcho: true
+
+  KMS:
+    Type: 'String'
+    Description: KMS for use with OpenSearch, EFS and RDS
+    Default: 'mrk-f5f10b5a31564b75837b2b2bb1f590f3'
+  OpenSearchDomainName:
+    Description: Enter a name for the OpenSearch domain to be created
+    Type: String
+    Default: acs-opensearch
+  OpenSearchInstanceType:
+    Description: OpenSearch instance type
+    Type: String
+    Default: r6g.large.search
+    AllowedValues:
+      - r6g.large.search
+      - r6g.xlarge.search
+      - r6g.2xlarge.search
+      - r6g.4xlarge.search
+      - r6g.8xlarge.search
+      - r6g.16xlarge.search
+      - r6gd.large.search
+      - r6gd.xlarge.search
+      - r6gd.2xlarge.search
+      - r6gd.4xlarge.search
+      - r6gd.8xlarge.search
+      - r6gd.16xlarge.search      
+    ConstraintDescription: must be a valid instance type for the current region.
+  OpenSearchMasterUserName:
+    Description: Enter master username for the OpenSearch domain to be created, must be between 1 and 16 characters.
+    Type: String
+    Default: alfresco
+    AllowedPattern: '^[a-z]{1,16}$'
+  OpenSearchMasterPassword:
+    Description: Enter master password for the OpenSearch domain to be created, min 8 characters. At least one uppercase letter, one lowercase letter, one number, and one special character.
+    Type: String
+    Default: Th-sIs1t
+    AllowedPattern: '^(?=.{8,}$)(?=.*?[a-z])(?=.*?[A-Z])(?=.*?[0-9])(?=.*?\W).*$'    
+    NoEcho: True
+  S3BucketPrefix:
+    Type: String
+    Default: alfcontent 
+    Description: Name prefix for S3 bucket used as Alfresco content store.
+    AllowedPattern: ^[a-z0-9][a-z0-9.-]+[a-z0-9]$
+    MinLength: 3
+    MaxLength: 43
+    ConstraintDescription: Bucket name must follow S3 bucket naming rules
+  IAMRoleName:
+    Type: String
+    Description: Name of the existing IAM role
+    Default: ore23-alf-pod
+  IAMPolicyName:
+    Type: String
+    Description: Name of the existing IAM policy attached to the role
+    Default: eksctl-ore23-addon-iamserviceaccount-alfresco-alf-pod-Policy1
+#################
+Resources:
+  InternalAllAccessSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Everything inside is open with external SSH"
+      GroupName: !Sub '${AWS::StackName}-internalallaccess'
+      VpcId: !Ref VPC
+      SecurityGroupEgress: 
+      - 
+        CidrIp: "0.0.0.0/0"
+        IpProtocol: "-1"
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Citation
+          Value: "https://gist.github.com/alanwill/9254414"
+  InternalAllAccessSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref InternalAllAccessSecurityGroup
+      IpProtocol: "-1"
+      FromPort: '0'
+      ToPort: '65535'
+      SourceSecurityGroupId: !Ref InternalAllAccessSecurityGroup
+      SourceSecurityGroupOwnerId: !Ref AWS::AccountId
+  DatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: CloudFormation managed DB subnet group.
+      SubnetIds: !Ref PrivateSubnets
+
+  RDSDBCluster:
+    Type: 'AWS::RDS::DBCluster'
+    Properties:
+      Engine: aurora-postgresql
+      DBClusterIdentifier: !Ref DBClusterIdentifier
+      EngineVersion: !Ref DBEngineVersion
+      MasterUsername: !Ref DBMasterUsername
+      MasterUserPassword: !Ref DBMasterUserPassword
+      DatabaseName: !Ref DBName
+      Port: 5432
+      StorageEncrypted: true
+      KmsKeyId: !Ref KMS      
+      ServerlessV2ScalingConfiguration:
+        MinCapacity: !Ref DBMinCapacity
+        MaxCapacity: !Ref DBMaxCapacity
+      DBSubnetGroupName:
+          Ref: DatabaseSubnetGroup
+      VpcSecurityGroupIds: !Split
+        - ","
+        - !Sub
+          - "${existingSgToString},${InternalAllAccessSecurityGroup}"
+          - existingSgToString: !Join [",",!Ref InternalSecurityGroups]
+  RDSDBInstance:
+    Type: "AWS::RDS::DBInstance"
+    Properties:
+      AllowMajorVersionUpgrade: false
+      AutoMinorVersionUpgrade: true
+      DBClusterIdentifier: !Ref RDSDBCluster
+      DBSubnetGroupName: !Ref DatabaseSubnetGroup
+      Engine: aurora-postgresql
+      DBInstanceClass: db.serverless
+      EnablePerformanceInsights: false
+      MonitoringInterval: 0
+  AmazonMQBroker:
+    Type: "AWS::AmazonMQ::Broker"
+    Properties:
+      AutoMinorVersionUpgrade: true
+      BrokerName: !Sub '${AmazonMQBrokerName}_${AWS::StackName}'
+      DeploymentMode: "ACTIVE_STANDBY_MULTI_AZ"
+      EngineType: "ACTIVEMQ"
+      EngineVersion: "5.17.6"
+      HostInstanceType: "mq.m5.large"
+      PubliclyAccessible: false
+      StorageType: "efs"
+      AuthenticationStrategy: "simple"
+      MaintenanceWindowStartTime: 
+        DayOfWeek: "FRIDAY"
+        TimeOfDay: "20:00"
+        TimeZone: "America/New_York"
+      Logs: 
+        Audit: false
+        General: false
+      SecurityGroups: !Split
+        - ","
+        - !Sub
+          - "${existingSgToString},${InternalAllAccessSecurityGroup}"
+          - existingSgToString: !Join [",",!Ref InternalSecurityGroups]
+      SubnetIds: 
+      - !Select [0, !Ref PrivateSubnets]
+      - !Select [1, !Ref PrivateSubnets]      
+      Tags: 
+      - 
+        Key: "APNblog"
+        Value: "OpenSearchACS"
+      Users: 
+      - 
+        Username: !Ref AmazonMQBrokerUserName
+        Password: !Ref AmazonMQBrokerPassword
+        ConsoleAccess: true
+      EncryptionOptions: 
+        UseAwsOwnedKey: true
+  OpenSearchServiceDomain:
+    Type: "AWS::OpenSearchService::Domain"
+    Properties:
+      DomainName: !Sub '${AWS::StackName}-${OpenSearchDomainName}' 
+      EngineVersion: "OpenSearch_2.3"
+      ClusterConfig: 
+        DedicatedMasterEnabled: false
+        InstanceCount: 1
+        InstanceType: !Ref OpenSearchInstanceType
+        ZoneAwarenessEnabled: false
+        WarmEnabled: false
+      AccessPolicies:
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: '*'
+            Action: es:*
+            Resource: !Sub arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${AWS::StackName}-${OpenSearchDomainName}/*
+      VPCOptions: 
+        SecurityGroupIds: !Split
+        - ","
+        - !Sub
+          - "${existingSgToString},${InternalAllAccessSecurityGroup}"
+          - existingSgToString: !Join [",",!Ref InternalSecurityGroups]
+        SubnetIds:
+        - !Select [0, !Ref PrivateSubnets]
+      EncryptionAtRestOptions: 
+        Enabled: true
+        KmsKeyId: !Ref KMS
+      NodeToNodeEncryptionOptions: 
+        Enabled: true
+      AdvancedOptions: 
+        "indices.fielddata.cache.size": "20"
+        "indices.query.bool.max_clause_count": "10240"
+        override_main_response_version: "false"
+        "rest.action.multi.allow_explicit_index": "true"
+      EBSOptions: 
+        EBSEnabled: true
+        VolumeType: "gp3"
+        VolumeSize: 40
+        Throughput: 125
+        Iops: 3000
+      CognitoOptions: 
+        Enabled: false
+      DomainEndpointOptions: 
+        EnforceHTTPS: true
+        TLSSecurityPolicy: "Policy-Min-TLS-1-0-2019-07"
+        CustomEndpointEnabled: false
+      AdvancedSecurityOptions: 
+        Enabled: true
+        InternalUserDatabaseEnabled: true
+        MasterUserOptions:
+          MasterUserName: !Ref OpenSearchMasterUserName
+          MasterUserPassword: !Ref OpenSearchMasterPassword
+      Tags: 
+      - 
+        Key: "APNblog"
+        Value: "OpenSearchACS"
+
+ 
+  ContentStoreS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${AWS::StackName}-${S3BucketPrefix}
+      VersioningConfiguration: 
+        Status: Enabled
+        
+  ContentStoreS3AccessRole:
+    Type: AWS::IAM::Policy
+    Properties:
+      Roles:
+        - !Ref IAMRoleName
+      PolicyName: !Ref IAMPolicyName
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 's3:ListBucket'
+            Resource:
+              - !GetAtt ContentStoreS3Bucket.Arn
+          - Effect: Allow
+            Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+              - 's3:DeleteObject'
+            Resource:
+              - !Join ['', [!GetAtt ContentStoreS3Bucket.Arn, '/*']]
+
+#############        

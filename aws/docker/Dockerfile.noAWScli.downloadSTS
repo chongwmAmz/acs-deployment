@@ -1,0 +1,4 @@
+FROM quay.io/alfresco/alfresco-content-repository-aws:23.2.1
+USER root
+RUN curl -O  https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-sts/1.12.569/aws-java-sdk-sts-1.12.569.jar \
+    && mv aws-java-sdk-sts-1.12.569.jar /usr/local/tomcat/webapps/alfresco/WEB-INF/lib/aws-java-sdk-sts-1.12.569.jar
