@@ -33,4 +33,4 @@ metadata:
 ```
 kubecl -n alfresco apply -f aws/Alfresco23Template.yaml
 ```
-12. If you notice that pods stuck in a restart loop rather than completing the startup and the cause is either a failed startup, readiness or liveness probe, it is likely that the resource request for the pod is too low. You can either allow EKS to wait longer for the pod to complete startup by adding `initialDelaySeconds` into those pods or increase the requested CPU. Note that it takes Fargate approximately 60 seconds to allocated a node to EKS. 
+12. If you notice pods getting stuck in a restart loop and the cause in the system event log is either a failed startup, readiness or liveness probe, it is likely that the resource request for the pod is too low. You can either allow EKS to wait longer for the pod to complete startup by adding `initialDelaySeconds` into those pods or increase the requested CPU. Note that it takes Fargate approximately 60 seconds to allocated a node to EKS. 
