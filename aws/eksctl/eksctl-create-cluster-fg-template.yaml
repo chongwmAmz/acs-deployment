@@ -1,0 +1,61 @@
+apiVersion: eksctl.io/v1alpha5
+availabilityZones:
+- <az1>
+- <az2>
+cloudWatch:
+  clusterLogging:
+    enableTypes: ["*"]
+fargateProfiles:
+- name: fp-default
+  selectors:
+  - namespace: default
+  - namespace: kube-system
+  status: ""
+- name: <fargateProfileNameForAlfresco>
+  selectors:
+  - namespace: <namespaceForAlfresco>
+  status: ""  
+iam:
+  vpcResourceControllerPolicy: true
+# https://eksctl.io/usage/iamserviceaccounts/  
+  withOIDC: true
+  serviceAccounts:
+  - metadata:
+      name: <toRunGenericAlfrescoContainers>
+      namespace: <namespaceForAlfresco>
+    roleName: <iamRoleNameForAlfrescoContainers>
+    attachPolicy: # inline policy can be defined along with `attachPolicyARNs`
+      Version: "2012-10-17"
+      Statement:
+      - Effect: Allow
+        Action:
+        - "s3:PutObject"
+        - "s3:GetObject"
+        - "s3:DeleteObject"
+        Resource: 'arn:aws:s3:::<ReplaceWithActualS3Bucket>'
+  - metadata:
+      name: aws-load-balancer-controller
+      namespace: kube-system
+    roleName: <iamRoleNameForALBContainer>
+    wellKnownPolicies:
+      awsLoadBalancerController: true
+
+kind: ClusterConfig
+kubernetesNetworkConfig:
+  ipFamily: IPv4
+metadata:
+  name: <eksClusterName>
+  region: <regionForCluster>
+  version: "1.29"
+privateCluster:
+  enabled: false
+  skipEndpointCreation: false
+vpc:
+  autoAllocateIPv6: false
+  cidr: <clusterCidr>
+  clusterEndpoints:
+    privateAccess: false
+    publicAccess: true
+  manageSharedNodeSecurityGroupRules: true
+  nat:
+    gateway: HighlyAvailable
