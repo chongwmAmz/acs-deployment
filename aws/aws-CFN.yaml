@@ -36,7 +36,7 @@ Outputs:
 Parameters:
   VPC:
     Type: AWS::EC2::VPC::Id
-    Default: "vpc-02b7a1f660c81acc6"
+    Default: "vpc-FromEksctl"
   DBName:
     Type: String
     Default: alfresco
@@ -45,7 +45,7 @@ Parameters:
     Default: alfresco
   DBMasterUserPassword:
     Type: String
-    Default: alfresco
+    Default: something
     NoEcho: true
   DBClusterIdentifier:
     Type: String
@@ -70,11 +70,11 @@ Parameters:
     Default: "16.0"
   PrivateSubnets:
     Type: List<AWS::EC2::Subnet::Id>
-    Default: "subnet-040f8d02e4a96d851,subnet-078b689b62e31a1b6"
+    Default: "subnet-fromEsksctl1,subnet-fromEsksctl2"
   InternalSecurityGroups:
      Type: List<AWS::EC2::SecurityGroup::Id>
      #https://tinyurl.com/4spbj9na
-     Default: "sg-05d019f64ff5fd2b3,sg-0114c771129c332ac,sg-0fdb58dfb8dd18296"
+     Default: "sg-fromEsksctl1,sg-fromEsksctl2,sg-fromEsksctl3"
   AmazonMQBrokerName:
     Description: Enter a name for the MQ broker to be created
     Type: String
@@ -86,13 +86,13 @@ Parameters:
   AmazonMQBrokerPassword:
     Description: Enter a password to administer the MQ broker to be created. Minimum 12 characters, at least 4 unique characters. Can't contain commas (,), colons (:), equals signs (=), spaces or non-printable ASCII characters.
     Type: String
-    Default: beeisnotdctm
+    Default: something
     NoEcho: true
 
   KMS:
     Type: 'String'
     Description: KMS for use with OpenSearch, EFS and RDS
-    Default: 'mrk-f5f10b5a31564b75837b2b2bb1f590f3'
+    Default: 'mrk-xxxxxxxxxxxxxxxxxx'
   OpenSearchDomainName:
     Description: Enter a name for the OpenSearch domain to be created
     Type: String
@@ -123,7 +123,7 @@ Parameters:
   OpenSearchMasterPassword:
     Description: Enter master password for the OpenSearch domain to be created, min 8 characters. At least one uppercase letter, one lowercase letter, one number, and one special character.
     Type: String
-    Default: Th-sIs1t
+    Default: something
     AllowedPattern: '^(?=.{8,}$)(?=.*?[a-z])(?=.*?[A-Z])(?=.*?[0-9])(?=.*?\W).*$'    
     NoEcho: True
   S3BucketPrefix:
@@ -137,11 +137,11 @@ Parameters:
   IAMRoleName:
     Type: String
     Description: Name of the existing IAM role
-    Default: ore23-alf-pod
+    Default: fromEsksctl  
   IAMPolicyName:
     Type: String
     Description: Name of the existing IAM policy attached to the role
-    Default: eksctl-ore23-addon-iamserviceaccount-alfresco-alf-pod-Policy1
+    Default: fromEsksctl1
 #################
 Resources:
   InternalAllAccessSecurityGroup:
